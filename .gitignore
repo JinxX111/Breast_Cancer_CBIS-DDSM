@@ -1,0 +1,23 @@
+﻿# Du lieu CBIS-DDSM
+Data/rawdata/
+Data/processed/
+
+# Mac dinh khong cong khai metadata du lieu
+# Neu da xac minh quyen chia se, co the bo quy tac nay
+# Data/metadata/
+
+# Moi truong Python
+.venv/
+venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Mo hinh va ket qua sinh ra
+models/
+results/
+*.pt
+*.pth
+*.ckpt
+
+# Thong tin nhay cam
+.env
