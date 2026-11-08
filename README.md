@@ -5,7 +5,7 @@ Khóa luận tập trung nghiên cứu và xây dựng phương pháp học sâu
 
 Nghiên cứu hướng đến việc khai thác ảnh DICOM, metadata, annotation và ROI Mask để xây dựng dữ liệu thực nghiệm phục vụ bài toán phát hiện và định vị tổn thương. Thông tin pathology cũng được khảo sát nhằm hỗ trợ phân tích đặc điểm tổn thương và xem xét khả năng mở rộng sang bài toán phân loại lành tính, ác tính.
 
-Phạm vi thực nghiệm được triển khai theo từng giai đoạn, bắt đầu từ kiểm kê và kiểm định dữ liệu, xây dựng tập dữ liệu tổn thương **Mass**, sau đó tiếp tục nghiên cứu tiền xử lý ảnh, xây dựng Ground Truth và phát triển mô hình học sâu.
+Sau giai đoạn khảo sát dữ liệu gồm hai nhóm Mass và Calcification, nghiên cứu lựa chọn Mass làm đối tượng thực nghiệm chính trong giai đoạn hiện tại. Phạm vi này giúp tập trung xây dựng và kiểm chứng quy trình liên kết ảnh, chuẩn hóa ROI Mask và chuẩn bị Ground Truth cho bài toán định vị tổn thương trước khi phát triển mô hình học sâu.
 
 ---
 
@@ -22,7 +22,22 @@ Phạm vi thực nghiệm được triển khai theo từng giai đoạn, bắt 
 
 ---
 
-## 3. Tiến độ dự án
+## 3. Phạm vi nghiên cứu: Lựa chọn Mass
+CBIS-DDSM cung cấp hai nhóm annotation chính là **Mass** và **Calcification**. Cả hai nhóm đều được kiểm kê, khảo sát và xây dựng cấu trúc liên kết dữ liệu trong các giai đoạn đầu.
+
+Sau khi đánh giá cấu trúc metadata, khả năng truy xuất ảnh và ROI Mask, nghiên cứu lựa chọn **Mass** làm nhóm tổn thương chính để triển khai thực nghiệm trước. 
+
+**Các lý do lựa chọn:**
+* Tập trung nguồn lực vào một nhóm tổn thương để hoàn thiện quy trình thực nghiệm.
+* Có thể khai thác ROI Mask để khảo sát vùng tổn thương và xây dựng nhãn định vị.
+* Phù hợp với định hướng phát triển pipeline phát hiện và định vị tổn thương trên ảnh Full Image.
+* Tạo cơ sở để đánh giá chất lượng dữ liệu, khả năng xây dựng Ground Truth và tính khả thi của mô hình học sâu.
+
+*Calcification vẫn nằm trong phạm vi khảo sát dữ liệu ban đầu, nhưng chưa được đưa vào Mass Experimental Dataset. Việc mở rộng sang Calcification sẽ được cân nhắc ở giai đoạn tiếp theo tùy theo tiến độ và kết quả thực nghiệm.*
+
+---
+
+## 4. Tiến độ dự án
 
 | Thành phần | Nội dung | Trạng thái |
 | :--- | :--- | :--- |
@@ -34,16 +49,16 @@ Phạm vi thực nghiệm được triển khai theo từng giai đoạn, bắt 
 
 ---
 
-## 4. Các công đoạn xây dựng dữ liệu
+## 5. Các công đoạn xây dựng dữ liệu
 
-### 4.1. Kiểm kê và kiểm định dữ liệu
+### 5.1. Kiểm kê và kiểm định dữ liệu
 * Kiểm kê cấu trúc thư mục, metadata và dữ liệu DICOM.
 * Thống kê số lượng ảnh, bệnh nhân, annotation và các thành phần liên quan.
 * Kiểm tra chất lượng metadata, giá trị thiếu và tính nhất quán giữa các bảng.
 * Khảo sát khả năng liên kết annotation với ảnh Full Image, Cropped Image và ROI Mask.
 * Kiểm tra khả năng truy xuất ảnh thông qua thông tin định danh DICOM.
 
-### 4.2. Xây dựng cấu trúc Annotation và Image Mapping
+### 5.2. Xây dựng cấu trúc Annotation và Image Mapping
 Từ bốn bảng annotation Mass/Calcification thuộc Train/Test, quá trình xây dựng dữ liệu thu được:
 
 | Chỉ tiêu | Số lượng |
@@ -62,7 +77,7 @@ Từ bốn bảng annotation Mass/Calcification thuộc Train/Test, quá trình 
 
 > **Lưu ý:** Candidate là các bản ghi ứng viên được xây dựng từ annotation và quy tắc liên kết CC–MLO, không đồng nghĩa với số lượng tổn thương độc lập đã được xác minh lâm sàng. Số lượng Patient ID trong metadata cũng không nên được diễn giải trực tiếp thành số người tham gia nghiên cứu độc lập. Kết quả kiểm định tổng thể trong Notebook 03: **54/54 phép kiểm tra đạt yêu cầu**.
 
-### 4.3. Xây dựng Mass Experimental Dataset
+### 5.3. Xây dựng Mass Experimental Dataset
 Notebook 05 tập trung xây dựng tập dữ liệu thực nghiệm cho nhóm tổn thương **Mass**, gồm các công đoạn:
 * Tổng hợp và chuẩn hóa 1.696 Mass Annotations từ metadata nguồn.
 * Kiểm tra quan hệ giữa Patient ID, annotation và các ảnh Full Image tương ứng.
@@ -72,22 +87,45 @@ Notebook 05 tập trung xây dựng tập dữ liệu thực nghiệm cho nhóm 
 * Kiểm tra trùng lặp Annotation ID, khả năng truy xuất tệp, chất lượng mask và rò rỉ Patient ID giữa các tập.
 * Xuất Mass Experimental Dataset cùng các bảng thống kê và báo cáo kiểm định.
 
-**Kết quả Mass Experimental Dataset:**
-* Mass Annotations: **1.696**
-* Patient ID: **892**
-* Full Image truy xuất được: **1.696**
-* Normalized ROI Mask: **1.696**
+### 5.4. Điều chỉnh phương pháp chia dữ liệu
+Ban đầu, dữ liệu Train nguồn được chia thành Train và Validation bằng phương pháp `GroupShuffleSplit` theo Patient ID. Kết quả chia ban đầu đảm bảo không có Patient ID giao nhau giữa các tập, nhưng tỷ lệ pathology giữa Train và Validation chưa thực sự cân bằng (đặc biệt nhóm `MALIGNANT` chiếm 46,47% trong Train nhưng lên tới 56,03% trong Validation). 
 
-**Phân chia dữ liệu:**
+Do đó, nghiên cứu thực hiện nhiều lần chia ứng viên có kiểm soát, lựa chọn phương án có phân bố pathology giữa Train và Validation gần nhau hơn, đồng thời giữ nguyên các nhóm Patient ID và tập Test nguồn.
 
-| Tập dữ liệu | Annotations | Patients |
+**So sánh số lượng Annotation trước và sau điều chỉnh:**
+| Dataset | Chia ban đầu | Chia được chọn |
+| :--- | :--- | :--- |
+| **Train** | 1.061 | 1.054 |
+| **Validation** | 257 | 264 |
+| **Test** | 378 | 378 |
+| **Tổng** | **1.696** | **1.696** |
+
+Số lượng Patient ID không thay đổi (**892 bệnh nhân** tổng cộng: 552 Train, 139 Validation, 201 Test).
+
+**So sánh tỷ lệ pathology giữa Train và Validation:**
+| Pathology | Train ban đầu | Validation ban đầu | Train sau điều chỉnh | Validation sau điều chỉnh |
+| :--- | :--- | :--- | :--- | :--- |
+| **BENIGN** | 44,67% | 40,08% | 43,93% | 43,18% |
+| **BENIGN_WITHOUT_CALLBACK** | 8,86% | 3,89% | 7,87% | 7,95% |
+| **MALIGNANT** | 46,47% | 56,03% | 48,20% | 48,86% |
+
+**Mức chênh lệch tỷ lệ giữa Train và Validation:**
+* **BENIGN:** Giảm từ 4,59 điểm % xuống **0,75 điểm %**.
+* **BENIGN_WITHOUT_CALLBACK:** Giảm từ 4,97 điểm % xuống **0,08 điểm %**.
+* **MALIGNANT:** Giảm từ 9,56 điểm % xuống **0,66 điểm %**.
+
+> **Lưu ý:** Việc lựa chọn phương án chia dữ liệu dựa trên tỷ lệ pathology ở cấp annotation, đồng thời giữ nguyên nhóm Patient ID. Các bệnh nhân có nhiều annotation hoặc nhiều pathology được giữ trong cùng một tập, không tách annotation của cùng một Patient ID sang các tập khác nhau.
+
+**Phân chia cuối cùng được sử dụng trong Mass Experimental Dataset:**
+
+| Dataset | Annotations | Patients |
 | :--- | :--- | :--- |
 | **Train** | 1.054 | 552 |
 | **Validation** | 264 | 139 |
 | **Test** | 378 | 201 |
 | **Tổng** | **1.696** | **892** |
 
-**Quá trình chuẩn hóa ROI Mask:**
+### 5.5. Kết quả chuẩn hóa và kiểm định ROI Mask
 * Giữ nguyên kích thước (Identity): 1.618
 * Resize bằng Nearest Neighbor: 78
 * **Tổng:** 1.696
@@ -105,7 +143,7 @@ Notebook 05 tập trung xây dựng tập dữ liệu thực nghiệm cho nhóm 
 
 ---
 
-## 5. Cấu trúc dự án
+## 6. Cấu trúc dự án
 
 ```text
 Breast-Cancer-CBIS-DDSM/
