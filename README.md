@@ -1,256 +1,198 @@
-## Xây dựng mô hình học sâu phát hiện và định vị tổn thương trên ảnh X-quang tuyến vú
+# Xây dựng mô hình học sâu phát hiện và định vị tổn thương có chọn lọc lành tính và ác tính trên ảnh X-quang tuyến vú
 
-![Python](https://img.shields.io/badge/Python-3.10-blue)
+![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Dataset](https://img.shields.io/badge/Dataset-CBIS--DDSM-brightgreen)
 ![Task](https://img.shields.io/badge/Task-Detection%20%26%20Localization-orange)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![Status](https://img.shields.io/badge/Status-Model%20Design%20Completed-success)
 
 ---
 
 ## 1. Giới thiệu
 
-Khóa luận tập trung nghiên cứu và xây dựng phương pháp học sâu nhằm phát hiện và định vị tổn thương trên ảnh X-quang tuyến vú, sử dụng bộ dữ liệu **CBIS-DDSM** (*Curated Breast Imaging Subset of DDSM*).
+Khóa luận tập trung nghiên cứu và xây dựng mô hình học sâu nhằm phát hiện, định vị và phân loại tổn thương lành tính, ác tính trên ảnh X-quang tuyến vú.
 
-Nghiên cứu hướng đến việc khai thác ảnh DICOM, metadata, annotation và ROI Mask để xây dựng dữ liệu thực nghiệm phục vụ bài toán phát hiện và định vị tổn thương. Thông tin `pathology` cũng được khảo sát nhằm hỗ trợ phân tích đặc điểm tổn thương và xem xét khả năng mở rộng sang bài toán phân loại lành tính, ác tính.
+Nghiên cứu sử dụng bộ dữ liệu **CBIS-DDSM (Curated Breast Imaging Subset of DDSM)**. Dữ liệu ảnh DICOM, metadata, annotation và ROI Mask được khai thác để xây dựng quy trình xử lý, kiểm định và chuẩn bị nhãn phục vụ bài toán phát hiện, định vị tổn thương.
 
-Sau giai đoạn khảo sát hai nhóm tổn thương **Mass** và **Calcification**, nghiên cứu lựa chọn **Mass** làm đối tượng thực nghiệm chính trong giai đoạn hiện tại. Việc tập trung vào Mass giúp xây dựng và kiểm chứng quy trình liên kết ảnh, chuẩn hóa ROI Mask và chuẩn bị Ground Truth cho bài toán định vị tổn thương trước khi phát triển mô hình học sâu.
+Sau khi khảo sát hai nhóm tổn thương Mass và Calcification, nghiên cứu lựa chọn **Mass** làm đối tượng thực nghiệm chính trong giai đoạn hiện tại.
 
----
+## 2. Dữ liệu nghiên cứu
 
-## 2. Dataset
+**CBIS-DDSM – Curated Breast Imaging Subset of DDSM**
 
-**CBIS-DDSM** — *Curated Breast Imaging Subset of DDSM*, được lưu trữ tại *The Cancer Imaging Archive* (TCIA).
+Nguồn dữ liệu: [The Cancer Imaging Archive (TCIA)](https://www.cancerimagingarchive.net/collection/cbis-ddsm/)
 
-Dữ liệu nghiên cứu bao gồm:
-* Ảnh X-quang tuyến vú định dạng **DICOM**.
-* **Metadata** mô tả bệnh nhân, bên ngực, góc chụp và đặc điểm tổn thương.
-* **Annotation** thuộc hai nhóm tổn thương Mass và Calcification.
-* Ảnh **Cropped Image** chứa vùng tổn thương.
-* **ROI Mask** phục vụ xác định vùng tổn thương.
-* Thông tin **pathology** và các thuộc tính mô tả tổn thương.
+Các thành phần dữ liệu được sử dụng:
 
-> [!NOTE]
-> Repository sử dụng duy nhất CBIS-DDSM cho khóa luận này, không kết hợp VinDr-Mammo.
+- Ảnh X-quang tuyến vú định dạng DICOM.
+- Metadata mô tả thông tin ảnh và tổn thương.
+- Annotation thuộc hai nhóm Mass và Calcification.
+- Full Image, Cropped Image và ROI Mask.
+- Thông tin pathology và các thuộc tính hình thái tổn thương.
 
----
+### Quy mô tập dữ liệu Mass
 
-## 3. Phạm vi nghiên cứu: Lựa chọn Mass
+| Thành phần | Số lượng |
+|:--|--:|
+| Mass Annotations | 1.696 |
+| Full Images duy nhất | 1.592 |
+| Patient ID | 892 |
+| Train | 1.054 annotations |
+| Validation | 264 annotations |
+| Test | 378 annotations |
 
-CBIS-DDSM cung cấp hai nhóm annotation chính là **Mass** và **Calcification**. Cả hai nhóm đều được kiểm kê, khảo sát và xây dựng cấu trúc liên kết dữ liệu trong các giai đoạn đầu.
+Dữ liệu được chia theo Patient ID nhằm hạn chế rò rỉ dữ liệu giữa các tập. Tập Test nguồn được giữ nguyên trong quá trình xây dựng Train và Validation.
 
-Sau khi đánh giá cấu trúc metadata, khả năng truy xuất ảnh và ROI Mask, nghiên cứu lựa chọn **Mass** làm nhóm tổn thương chính để triển khai thực nghiệm trước.
+## 3. Mục tiêu nghiên cứu
 
-### Các lý do lựa chọn:
-* **Tập trung nguồn lực:** Tập trung vào một nhóm tổn thương để hoàn thiện quy trình thực nghiệm.
-* **Khai thác ROI Mask:** Khảo sát vùng tổn thương và xây dựng nhãn định vị.
-* **Định hướng Pipeline:** Phù hợp với định hướng phát triển pipeline phát hiện và định vị tổn thương trên ảnh Full Image.
-* **Cơ sở đánh giá:** Tạo cơ sở đánh giá chất lượng dữ liệu, khả năng xây dựng Ground Truth và tính khả thi của mô hình học sâu.
+1. Khảo sát và kiểm định cấu trúc dữ liệu CBIS-DDSM.
+2. Xây dựng tập dữ liệu thực nghiệm Mass có khả năng truy xuất từ annotation đến ảnh và ROI Mask.
+3. Tiền xử lý ảnh DICOM và xây dựng Bounding Box phục vụ phát hiện, định vị tổn thương.
+4. Nghiên cứu mô hình học sâu phát hiện và định vị Mass.
+5. Khảo sát khả năng phân loại tổn thương thành BENIGN và MALIGNANT.
+6. Đánh giá hiệu quả từng giai đoạn và toàn bộ quy trình hai giai đoạn.
 
-> [!IMPORTANT]
-> Calcification vẫn nằm trong phạm vi khảo sát dữ liệu ban đầu, nhưng chưa được đưa vào `Mass Experimental Dataset`. Việc mở rộng sang Calcification sẽ được cân nhắc ở giai đoạn tiếp theo tùy theo tiến độ và kết quả thực nghiệm.
+## 4. Quy trình thực hiện
 
----
+| Notebook | Nội dung | Trạng thái |
+|:--|:--|:--:|
+| 01 | Kiểm kê dữ liệu (Data Inventory) | Hoàn thành |
+| 02 | Kiểm định chất lượng và liên kết dữ liệu | Hoàn thành |
+| 03 | Xây dựng cấu trúc dữ liệu tổn thương | Hoàn thành |
+| 04 | Phân tích dữ liệu và xác định phạm vi nghiên cứu | Hoàn thành |
+| 05 | Xây dựng Mass Experimental Dataset | Hoàn thành |
+| 06 | Tiền xử lý ảnh và xây dựng Detection Labels | Hoàn thành |
+| 07 | Thiết kế mô hình và chiến lược thực nghiệm | Hoàn thành |
+| 08 | Thiết lập huấn luyện và đánh giá tính khả thi | Tiếp theo |
 
-## 4. Tiến độ dự án
+Chi tiết quá trình xử lý, phân tích và kiểm định được trình bày trong các notebook tương ứng.
 
-| Thành phần | Nội dung | Trạng thái |
-| :--- | :--- | :--- |
-| **Notebook 01** — Data Inventory | Kiểm kê dữ liệu, cấu trúc thư mục, quy mô và thành phần dataset | `Hoàn thành` |
-| **Notebook 02** — Data Quality & Linkage | Kiểm tra chất lượng metadata, đường dẫn và liên kết giữa metadata với ảnh DICOM | `Hoàn thành` |
-| **Notebook 03** — Lesion Dataset Construction | Xây dựng Candidate Master, Annotation Mapping, Image Mapping và ROI Mapping | `Hoàn thành` |
-| **Notebook 04** — EDA and Research Scope | Khảo sát phân bố dữ liệu, pathology, đặc điểm ảnh và tính khả thi của phạm vi nghiên cứu | `Đang hoàn thiện` |
-| **Notebook 05** — Mass Experimental Dataset | Xây dựng tập dữ liệu Mass, chuẩn hóa ROI Mask, chia Train/Validation/Test và kiểm tra tính toàn vẹn | `Hoàn thành` |
+## 5. Kết quả chính
 
----
+### 5.1. Xây dựng dữ liệu thực nghiệm
 
-## 5. Các công đoạn xây dựng dữ liệu
+- Hoàn thiện 1.696 Mass Annotations.
+- Liên kết với 1.592 ảnh Full Image duy nhất.
+- Chuẩn hóa thành công 1.696 ROI Masks.
+- Xây dựng Bounding Box và Detection Labels cho 1.696 annotations.
+- Hoàn thiện ba tập Train, Validation và Test theo Patient ID.
+- Không phát hiện Patient ID giao nhau giữa các tập dữ liệu.
 
-### 5.1. Kiểm kê và kiểm định dữ liệu
-* Kiểm kê cấu trúc thư mục, metadata và dữ liệu DICOM.
-* Thống kê số lượng ảnh, bệnh nhân, annotation và các thành phần liên quan.
-* Kiểm tra chất lượng metadata, giá trị thiếu và tính nhất quán giữa các bảng.
-* Khảo sát khả năng liên kết annotation với ảnh Full Image, Cropped Image và ROI Mask.
-* Kiểm tra khả năng truy xuất ảnh thông qua thông tin định danh DICOM.
+### 5.2. Tiền xử lý và kiểm định
 
-### 5.2. Xây dựng cấu trúc Annotation và Image Mapping
-Từ bốn bảng annotation Mass/Calcification thuộc Train/Test, quá trình xây dựng dữ liệu thu được:
+- Kiểm tra khả năng đọc metadata và giải mã Pixel Data của toàn bộ 1.592 DICOM duy nhất.
+- Khảo sát và lựa chọn phương pháp chuẩn hóa cường độ ảnh P1–P99.
+- 78 ROI Masks cần resize được xử lý bằng Nearest Neighbor và kiểm tra overlay trực quan.
+- Kiểm tra ngẫu nhiên 100 ảnh cùng Bounding Box tương ứng.
+- Notebook 06 đạt **21/21 tiêu chí PASS** trong báo cáo kiểm định chất lượng.
 
-| Chỉ tiêu | Số lượng |
-| :--- | :--- |
-| **Patient ID** duy nhất theo metadata | `1.566` |
-| **Annotation** | `3.568` |
-| **Candidate records** | `1.989` |
-| **Review groups** | `140` |
-| Quan hệ **Annotation – Image** | `7.136` |
-| **ROI mappings** | `3.568` |
+### 5.3. Thiết kế thực nghiệm
 
-#### Phân bố annotation theo loại tổn thương:
-* **Calcification:** `1.872`
-* **Mass:** `1.696`
-* **Tổng:** `3.568`
+- Hoàn thành thiết kế Two-stage Pipeline.
+- Xác định YOLOv5n làm kiến trúc ứng viên cho Detection.
+- Xác định VGG16, ResNet50 và InceptionV3 cho Classification.
+- Xây dựng các phương án đầu vào Full Image và Patch.
+- Hoàn thành các bảng thiết kế pipeline, phân chia dữ liệu và tiêu chí đánh giá trong Notebook 07.
 
-> [!NOTE]
-> Candidate là các bản ghi ứng viên được xây dựng từ annotation và quy tắc liên kết CC–MLO, không đồng nghĩa với số lượng tổn thương độc lập đã được xác minh lâm sàng. Số lượng Patient ID trong metadata cũng không nên được diễn giải trực tiếp thành số người tham gia nghiên cứu độc lập. Kết quả kiểm định tổng thể trong Notebook 03: **54/54 phép kiểm tra đạt yêu cầu**.
+**Lưu ý:** Các kết quả trên phản ánh giai đoạn xây dựng dữ liệu và thiết kế thực nghiệm. Mô hình chưa được huấn luyện và chưa có kết quả đánh giá hiệu năng.
 
-### 5.3. Xây dựng Mass Experimental Dataset
-Notebook 05 tập trung xây dựng tập dữ liệu thực nghiệm cho nhóm tổn thương **Mass**, gồm các công đoạn:
-1. Tổng hợp và chuẩn hóa **1.696 Mass Annotations** từ metadata nguồn.
-2. Kiểm tra quan hệ giữa Patient ID, annotation và các ảnh Full Image tương ứng.
-3. Đối chiếu Image Mapping và ROI Mapping để xác định đường dẫn ảnh có thể truy xuất.
-4. Khảo sát khả năng ánh xạ ROI Mask lên Full Image và chuẩn hóa kích thước ROI Mask về kích thước Full Image.
-5. Chia dữ liệu theo Patient ID, giữ nguyên tập Test nguồn và tạo tập Validation từ tập Train nguồn.
-6. Kiểm tra trùng lặp Annotation ID, khả năng truy xuất tệp, chất lượng mask và rò rỉ Patient ID giữa các tập.
-7. Xuất Mass Experimental Dataset cùng các bảng thống kê và báo cáo kiểm định.
+## 6. Kiến trúc mô hình dự kiến
 
-### 5.4. Điều chỉnh phương pháp chia dữ liệu
-Ban đầu, dữ liệu Train nguồn được chia thành Train và Validation bằng phương pháp `GroupShuffleSplit` theo Patient ID. Kết quả chia ban đầu đảm bảo không có Patient ID giao nhau giữa các tập, nhưng tỷ lệ pathology giữa Train và Validation chưa thực sự cân bằng (đặc biệt nhóm `MALIGNANT` chiếm 46,47% trong Train nhưng lên tới 56,03% trong Validation). 
+Nghiên cứu lựa chọn hướng tiếp cận **Two-stage Pipeline**, trong đó nhiệm vụ phát hiện và phân loại được thực hiện ở hai giai đoạn riêng biệt.
 
-Do đó, nghiên cứu thực hiện nhiều lần chia ứng viên có kiểm soát, lựa chọn phương án có phân bố pathology giữa Train và Validation gần nhau hơn, đồng thời giữ nguyên các nhóm Patient ID và tập Test nguồn.
+### Giai đoạn 1 – Phát hiện và định vị tổn thương
 
-#### So sánh số lượng Annotation trước và sau điều chỉnh:
-| Dataset | Chia ban đầu | Chia được chọn |
-| :--- | :--- | :--- |
-| **Train** | `1.061` | `1.054` |
-| **Validation** | `257` | `264` |
-| **Test** | `378` | `378` |
-| **Tổng** | **1.696** | **1.696** |
+**YOLOv5n**
 
-#### Số lượng Patient ID không thay đổi:
-| Dataset | Số Patient ID |
-| :--- | :--- |
-| **Train** | `552` |
-| **Validation** | `139` |
-| **Test** | `201` |
-| **Tổng** | **892** |
+- Đầu vào: ảnh Full Image hoặc các Patch được xây dựng từ ảnh gốc.
+- Nhiệm vụ: phát hiện và định vị vùng tổn thương Mass.
+- Đầu ra: Bounding Box và độ tin cậy dự đoán.
 
-#### So sánh tỷ lệ pathology giữa Train và Validation:
-| Pathology | Train ban đầu | Validation ban đầu | Train sau điều chỉnh | Validation sau điều chỉnh |
-| :--- | :--- | :--- | :--- | :--- |
-| **BENIGN** | 44,67% | 40,08% | 43,93% | 43,18% |
-| **BENIGN_WITHOUT_CALLBACK** | 8,86% | 3,89% | 7,87% | 7,95% |
-| **MALIGNANT** | 46,47% | 56,03% | 48,20% | 48,86% |
+### Giai đoạn 2 – Phân loại pathology
 
-#### Mức chênh lệch tỷ lệ giữa Train và Validation:
-| Pathology | Trước điều chỉnh | Sau điều chỉnh |
-| :--- | :--- | :--- |
-| **BENIGN** | 4,59 điểm % | **0,75 điểm %** |
-| **BENIGN_WITHOUT_CALLBACK** | 4,97 điểm % | **0,08 điểm %** |
-| **MALIGNANT** | 9,56 điểm % | **0,66 điểm %** |
+Ba kiến trúc CNN được đưa vào so sánh:
 
-Phương án được chọn giúp phân bố pathology giữa Train và Validation gần nhau hơn đáng kể. Tập Test nguồn gồm 378 annotations được giữ nguyên, không tham gia quá trình lựa chọn phương án chia Train/Validation.
+| Kiến trúc | Nhiệm vụ |
+|:--|:--|
+| VGG16 | Phân loại BENIGN / MALIGNANT |
+| ResNet50 | Phân loại BENIGN / MALIGNANT |
+| InceptionV3 | Phân loại BENIGN / MALIGNANT |
 
-#### Phân chia cuối cùng được sử dụng trong Mass Experimental Dataset:
-| Dataset | Annotations | Patients |
-| :--- | :--- | :--- |
-| **Train** | `1.054` | `552` |
-| **Validation** | `264` | `139` |
-| **Test** | `378` | `201` |
-| **Tổng** | **1.696** | **892** |
+Đầu vào là vùng tổn thương được trích xuất từ Bounding Box. Thực nghiệm dự kiến đánh giá cả trường hợp sử dụng Ground Truth Bounding Box và Predicted Bounding Box để khảo sát ảnh hưởng của sai số phát hiện đến kết quả phân loại.
 
-> [!TIP]
-> Việc lựa chọn phương án chia dữ liệu dựa trên tỷ lệ pathology ở cấp annotation, đồng thời giữ nguyên nhóm Patient ID. Các bệnh nhân có nhiều annotation hoặc nhiều pathology được giữ trong cùng một tập, không tách annotation của cùng một Patient ID sang các tập khác nhau.
+### Quy ước nhãn phân loại
 
-### 5.5. Kết quả chuẩn hóa và kiểm định ROI Mask
-| Phương pháp | Số lượng |
-| :--- | :--- |
-| Giữ nguyên kích thước (`Identity`) | `1.618` |
-| Resize bằng `Nearest Neighbor` | `78` |
-| **Tổng** | **1.696** |
+Dữ liệu gốc có ba nhãn pathology:
 
-Trong đó, 78 mask được resize đã được kiểm tra overlay trực quan và xác nhận vị trí vùng tổn thương phù hợp. Với 1.618 mask giữ nguyên kích thước, việc trùng khớp kích thước ảnh mới là điều kiện ứng viên; chưa thực hiện xác nhận overlay riêng cho từng trường hợp.
+- `BENIGN`
+- `BENIGN_WITHOUT_CALLBACK`
+- `MALIGNANT`
 
-#### Kết quả kiểm định cuối Notebook 05:
-* `1.696` Annotation ID duy nhất, không có bản ghi trùng lặp.
-* `1.696/1.696` Full Image tồn tại và truy xuất được.
-* `1.696/1.696` Normalized ROI Mask tồn tại và truy xuất được.
-* `1.696/1.696` ROI Mask chuẩn hóa thành công.
-* Không có mask rỗng.
-* Không phát hiện Patient ID giao nhau giữa Train, Validation và Test.
-* Giữ nguyên 378 Annotation ID thuộc Test nguồn.
-* **10/10 tiêu chí trong Integrity Report đạt PASS (`100%`).**
+Đối với thí nghiệm phân loại nhị phân:
 
-Các kết quả được xuất thành bốn tệp CSV:
-* `mass_experimental_dataset.csv`
-* `mass_split_summary.csv`
-* `mass_pathology_distribution.csv`
-* `mass_integrity_report.csv`
+| Nhãn gốc | Nhãn thực nghiệm |
+|:--|:--|
+| BENIGN | BENIGN |
+| BENIGN_WITHOUT_CALLBACK | BENIGN |
+| MALIGNANT | MALIGNANT |
 
----
+Việc ánh xạ chỉ áp dụng cho thí nghiệm nhị phân; nhãn pathology gốc vẫn được bảo toàn.
 
-## 6. Cấu trúc dự án
+### Chiến lược đầu vào dự kiến
 
-```text
-Breast-Cancer-CBIS-DDSM/
-│
-├── notebooks/
-│   ├── 01_data_inventory.ipynb
-│   ├── 02_data_quality_and_linkage.ipynb
-│   ├── 03_lesion_dataset_construction.ipynb
-│   ├── 04_eda_and_research_scope.ipynb
-│   └── 05_mass_experimental_dataset.ipynb
-│
-├── Data/
-│   ├── metadata/
-│   ├── rawdata/
-│   └── processed/
-│
-├── docs/
-├── figures/
-├── models/
-├── results/
-├── src/
-├── tests/
-│
-├── environment.yml
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
-> [!NOTE]
-> Tên file Notebook 05 trong cây thư mục cần được điều chỉnh theo tên file thực tế trong repository nếu có khác biệt.
+| Phương án | Vai trò |
+|:--|:--|
+| Full Image 640 | Baseline |
+| Full Image 1024 | Ưu tiên khảo sát |
+| Full Image 1280 | Khảo sát có điều kiện |
+| Patch 1024, overlap 20% | Phương án so sánh |
+| Patch 1280, overlap 20% | Phương án khảo sát bổ sung |
 
-### Quy ước lưu trữ dữ liệu:
-* `Data/metadata/`: Metadata và các bảng annotation nguồn.
-* `Data/rawdata/`: Ảnh DICOM gốc của CBIS-DDSM.
-* `Data/processed/`: Dữ liệu đã xử lý, bảng mapping, mask chuẩn hóa và các kết quả trung gian.
-* `notebooks/`: Các notebook thực hiện kiểm kê, kiểm định, phân tích và xây dựng dữ liệu.
-* `docs/`: Tài liệu nghiên cứu và ghi chú phương pháp.
-* `figures/`: Hình ảnh minh họa, biểu đồ và kết quả trực quan hóa.
-* `models/`: Mô hình được huấn luyện và các trọng số.
-* `results/`: Kết quả thực nghiệm.
+### Tiêu chí đánh giá
 
-> [!IMPORTANT]
-> Các thư mục dữ liệu lớn và dữ liệu xử lý không được đưa lên GitHub mặc định. Repository tập trung lưu mã nguồn, notebook, cấu hình môi trường và tài liệu nghiên cứu.
-
----
-
-## 6. Nguồn dữ liệu và tài liệu tham khảo
-
-* **Sawyer-Lee, R., Gimenez, F., Hoogi, A., & Rubin, D. (2016).** *A curated mammography data set for use in computer-aided detection and diagnosis research.*
-* **The Cancer Imaging Archive (TCIA).** 
-* **DOI:** [https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY](https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY)
-
-> [!WARNING]
-> Người sử dụng dữ liệu cần tuân thủ **Chính sách và Hạn chế Sử dụng Dữ liệu** của TCIA.
-
----
+- **Detection:** Precision, Recall, IoU, mAP@50 và mAP@50–95.
+- **Classification:** Accuracy, Precision, Recall, F1-score, ROC-AUC và Confusion Matrix.
+- **Two-stage Pipeline:** Đánh giá ảnh hưởng của sai số Bounding Box đến kết quả phân loại ở giai đoạn tiếp theo.
 
 ## 7. Môi trường phát triển
 
-* `Python`
-* `Jupyter Notebook`
-* `Visual Studio Code`
-* `Conda Environment`
-* `Apache Spark` (sử dụng trong các thử nghiệm xử lý dữ liệu liên quan)
+| Thành phần | Cấu hình |
+|:--|:--|
+| Hệ điều hành | Windows |
+| Python | 3.11.18 |
+| PyTorch | 2.5.1+cu121 |
+| CUDA Runtime | 12.1 |
+| GPU | NVIDIA GeForce RTX 4050 Laptop GPU |
+| VRAM | 6 GB |
+| Công cụ | VS Code, Jupyter Notebook, Conda |
 
-Các thư viện và phiên bản môi trường được quản lý thông qua `environment.yml` và `requirements.txt`.
+## 8. Định hướng tiếp theo
+
+1. Thiết lập môi trường huấn luyện và kiểm tra khả năng thực thi mô hình trên phần cứng hiện có.
+2. Thử nghiệm YOLOv5n với các phương án đầu vào đã đề xuất.
+3. Huấn luyện và so sánh VGG16, ResNet50 và InceptionV3.
+4. Đánh giá riêng Detection, Classification và toàn bộ Two-stage Pipeline.
+5. Phân tích kết quả, đối chiếu với các nghiên cứu liên quan và xem xét xây dựng ứng dụng minh họa.
+
+## 9. Ghi chú nghiên cứu
+
+- Phạm vi thực nghiệm hiện tại tập trung vào Mass.
+- Các kiến trúc YOLOv5n, VGG16, ResNet50 và InceptionV3 là lựa chọn thiết kế, chưa phải mô hình đã huấn luyện.
+- 78 ROI Masks được resize đã được kiểm tra overlay trực quan. 1.618 ROI Masks giữ nguyên kích thước chưa được kiểm tra overlay riêng từng trường hợp.
+- Việc kiểm tra kích thước và sự tương ứng giữa Bounding Box với ROI Mask không tự động chứng minh tính chính xác lâm sàng của Ground Truth.
+- Việc chia dữ liệu theo Patient ID không đảm bảo độc lập tuyệt đối ở cấp người tham gia nghiên cứu.
+- Kết quả nghiên cứu phục vụ mục đích học thuật, không thay thế chẩn đoán y khoa.
+
+## 10. Nguồn dữ liệu và tài liệu tham khảo
+
+**Sawyer-Lee, R., Gimenez, F., Hoogi, A., & Rubin, D. (2016).** *A curated mammography data set for use in computer-aided detection and diagnosis research.*
+
+**The Cancer Imaging Archive (TCIA).**
+
+**DOI:** [https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY](https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY)
+
+> [!WARNING]
+> Người sử dụng dữ liệu cần tuân thủ **Chính sách và Hạn chế Sử dụng Dữ liệu** của TCIA. Việc trích dẫn bộ dữ liệu CBIS-DDSM theo yêu cầu của TCIA là bắt buộc.
 
 ---
 
-## 8. Lưu ý
-
-* Repository này lưu mã nguồn, notebook, cấu hình môi trường và tài liệu nghiên cứu.
-* Không lưu trữ ảnh DICOM gốc hoặc các dữ liệu lớn đã xử lý trên GitHub mặc định.
-* Không đưa dữ liệu bệnh nhân, dữ liệu ảnh, mask và các tệp kết quả dung lượng lớn lên repository nếu chưa được kiểm tra quy tắc `.gitignore`.
-* Các số liệu thống kê trong README phản ánh kết quả của từng giai đoạn xây dựng dữ liệu; cần được cập nhật khi pipeline hoặc phạm vi thực nghiệm thay đổi.
-* Việc chuẩn hóa kích thước ROI Mask không tự động chứng minh sự căn chỉnh không gian chính xác với Full Image. Cần tiếp tục đánh giá Ground Truth và hệ tọa độ định vị trước khi sử dụng cho huấn luyện mô hình phát hiện tổn thương.
+**Khóa luận tốt nghiệp · Khoa học dữ liệu · 2026**
