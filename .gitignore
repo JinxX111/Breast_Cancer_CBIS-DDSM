@@ -1,23 +1,37 @@
-﻿# Du lieu CBIS-DDSM
+# CBIS-DDSM source data and generated datasets
 Data/rawdata/
 Data/processed/
 
-# Mac dinh khong cong khai metadata du lieu
-# Neu da xac minh quyen chia se, co the bo quy tac nay
+# Private/local metadata (uncomment only if sharing is permitted)
 # Data/metadata/
 
-# Moi truong Python
+# Python environments and caches
 .venv/
 venv/
+env/
 __pycache__/
+*.py[cod]
 .ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
 
-# Mo hinh va ket qua sinh ra
+# Model weights and generated outputs
 models/
 results/
+runs/
+logs/
 *.pt
 *.pth
 *.ckpt
+*.onnx
 
-# Thong tin nhay cam
+# Local IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets
 .env
+.env.*
+!.env.example
