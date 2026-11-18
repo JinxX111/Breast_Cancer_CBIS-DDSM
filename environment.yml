@@ -1,0 +1,27 @@
+name: cbis-thesis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - git
+  - jupyter
+  - ipykernel
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - pillow
+  - pyyaml
+  - tqdm
+  - pip:
+      - streamlit
+      - pydicom
+      - opencv-python
+      - albumentations
+      - tensorboard
+      - torch==2.5.1
+      - torchvision==0.20.1
