@@ -1,0 +1,27 @@
+# Scientific Python
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+seaborn
+tqdm
+PyYAML
+Pillow
+
+# Medical imaging and image processing
+pydicom
+opencv-python
+albumentations
+
+# Deep learning
+torch==2.5.1
+torchvision==0.20.1
+tensorboard
+
+# Notebook environment
+jupyter
+ipykernel
+
+# Streamlit web demo
+streamlit
