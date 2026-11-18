@@ -2,196 +2,195 @@
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Dataset](https://img.shields.io/badge/Dataset-CBIS--DDSM-brightgreen)
-![Task](https://img.shields.io/badge/Task-Detection%20%26%20Localization-orange)
-![Status](https://img.shields.io/badge/Status-Model%20Design%20Completed-success)
+![Framework](https://img.shields.io/badge/Framework-PyTorch%20%7C%20YOLOv5-orange)
+![Application](https://img.shields.io/badge/Web%20Demo-Streamlit-ff4b4b)
 
----
+Khóa luận tốt nghiệp ngành Khoa học dữ liệu — 2026.
 
 ## 1. Giới thiệu
 
-Khóa luận tập trung nghiên cứu và xây dựng mô hình học sâu nhằm phát hiện, định vị và phân loại tổn thương lành tính, ác tính trên ảnh X-quang tuyến vú.
+Dự án nghiên cứu và xây dựng quy trình học sâu hai giai đoạn nhằm phát hiện, định vị vùng tổn thương Mass và phân loại tính chất mô bệnh học lành tính/ác tính trên ảnh X-quang tuyến vú. Dữ liệu sử dụng là **CBIS-DDSM (Curated Breast Imaging Subset of DDSM)** từ The Cancer Imaging Archive (TCIA).
 
-Nghiên cứu sử dụng bộ dữ liệu **CBIS-DDSM (Curated Breast Imaging Subset of DDSM)**. Dữ liệu ảnh DICOM, metadata, annotation và ROI Mask được khai thác để xây dựng quy trình xử lý, kiểm định và chuẩn bị nhãn phục vụ bài toán phát hiện, định vị tổn thương.
+Phạm vi thực nghiệm chính tập trung vào **Mass**. Calcification được khảo sát trong giai đoạn tìm hiểu dữ liệu nhưng không thuộc phạm vi mô hình chính.
 
-Sau khi khảo sát hai nhóm tổn thương Mass và Calcification, nghiên cứu lựa chọn **Mass** làm đối tượng thực nghiệm chính trong giai đoạn hiện tại.
+> **Lưu ý:** Đây là sản phẩm nghiên cứu học thuật, không phải thiết bị y tế và không thay thế đánh giá hoặc chẩn đoán của bác sĩ.
 
-## 2. Dữ liệu nghiên cứu
+## 2. Kiến trúc nghiên cứu
 
-**CBIS-DDSM – Curated Breast Imaging Subset of DDSM**
+Dự án sử dụng kiến trúc **Two-stage Pipeline**:
 
-Nguồn dữ liệu: [The Cancer Imaging Archive (TCIA)](https://www.cancerimagingarchive.net/collection/cbis-ddsm/)
+1. **Mass Detection & Localization:** YOLOv5n phát hiện vùng Mass và trả về Bounding Box cùng confidence.
+2. **Pathology Classification:** vùng Mass được trích xuất và đưa vào CNN để phân loại BENIGN/MALIGNANT.
 
-Các thành phần dữ liệu được sử dụng:
+Các kiến trúc phân loại được huấn luyện và so sánh gồm **VGG16, ResNet50 và InceptionV3**. Web Demo hiện sử dụng YOLOv5n và InceptionV3 làm mô hình trình diễn.
 
-- Ảnh X-quang tuyến vú định dạng DICOM.
-- Metadata mô tả thông tin ảnh và tổn thương.
-- Annotation thuộc hai nhóm Mass và Calcification.
-- Full Image, Cropped Image và ROI Mask.
-- Thông tin pathology và các thuộc tính hình thái tổn thương.
+Nhãn pathology gốc gồm `BENIGN`, `BENIGN_WITHOUT_CALLBACK` và `MALIGNANT`. Trong thí nghiệm nhị phân, hai nhãn lành tính được ánh xạ về `BENIGN`, còn `MALIGNANT` được giữ riêng; nhãn gốc được bảo toàn trong metadata.
 
-### Quy mô tập dữ liệu Mass
+## 3. Dữ liệu
+
+Nguồn: [CBIS-DDSM — The Cancer Imaging Archive](https://www.cancerimagingarchive.net/collection/cbis-ddsm/).
+
+Dự án khai thác DICOM, metadata, full images, cropped images, ROI masks và pathology annotations.
+
+### Quy mô Mass
 
 | Thành phần | Số lượng |
-|:--|--:|
-| Mass Annotations | 1.696 |
-| Full Images duy nhất | 1.592 |
+|---|---:|
+| Mass annotations | 1.696 |
+| Full images duy nhất | 1.592 |
 | Patient ID | 892 |
-| Train | 1.054 annotations |
-| Validation | 264 annotations |
-| Test | 378 annotations |
+| Train annotations | 1.054 |
+| Validation annotations | 264 |
+| Test annotations | 378 |
 
-Dữ liệu được chia theo Patient ID nhằm hạn chế rò rỉ dữ liệu giữa các tập. Tập Test nguồn được giữ nguyên trong quá trình xây dựng Train và Validation.
+Việc chia tập được thực hiện theo Patient ID để hạn chế rò rỉ giữa Train, Validation và Test. Tập Test được giữ riêng cho đánh giá cuối cùng. Trong cấu hình Web Demo đã kiểm tra, tập Test có 361 ảnh, 378 annotations và 201 bệnh nhân.
 
-## 3. Mục tiêu nghiên cứu
+Dữ liệu ảnh CBIS-DDSM không được lưu trong repository. Người dùng cần tự tải dữ liệu từ TCIA và tuân thủ điều khoản sử dụng, trích dẫn của nguồn dữ liệu.
 
-1. Khảo sát và kiểm định cấu trúc dữ liệu CBIS-DDSM.
-2. Xây dựng tập dữ liệu thực nghiệm Mass có khả năng truy xuất từ annotation đến ảnh và ROI Mask.
-3. Tiền xử lý ảnh DICOM và xây dựng Bounding Box phục vụ phát hiện, định vị tổn thương.
-4. Nghiên cứu mô hình học sâu phát hiện và định vị Mass.
-5. Khảo sát khả năng phân loại tổn thương thành BENIGN và MALIGNANT.
-6. Đánh giá hiệu quả từng giai đoạn và toàn bộ quy trình hai giai đoạn.
+## 4. Quy trình và notebooks
 
-## 4. Quy trình thực hiện
+| Notebook | Nội dung |
+|---|---|
+| 01 | Kiểm kê dữ liệu (Data Inventory) |
+| 02 | Kiểm định chất lượng và liên kết dữ liệu |
+| 03 | Xây dựng cấu trúc dữ liệu tổn thương |
+| 04 | Phân tích dữ liệu và xác định phạm vi nghiên cứu |
+| 05 | Xây dựng Mass Experimental Dataset |
+| 06 | Tiền xử lý ảnh và xây dựng Detection Labels |
+| 07 | Thiết kế mô hình và chiến lược thực nghiệm |
+| 08 | Huấn luyện và tối ưu mô hình |
+| 09 | Đánh giá mô hình và phân tích lỗi |
+| 10 | Trực quan hóa nghiên cứu và trình bày kết quả |
+| 11 | Phát triển Web Demo |
 
-| Notebook | Nội dung | Trạng thái |
-|:--|:--|:--:|
-| 01 | Kiểm kê dữ liệu (Data Inventory) | Hoàn thành |
-| 02 | Kiểm định chất lượng và liên kết dữ liệu | Hoàn thành |
-| 03 | Xây dựng cấu trúc dữ liệu tổn thương | Hoàn thành |
-| 04 | Phân tích dữ liệu và xác định phạm vi nghiên cứu | Hoàn thành |
-| 05 | Xây dựng Mass Experimental Dataset | Hoàn thành |
-| 06 | Tiền xử lý ảnh và xây dựng Detection Labels | Hoàn thành |
-| 07 | Thiết kế mô hình và chiến lược thực nghiệm | Hoàn thành |
-| 08 | Thiết lập huấn luyện và đánh giá tính khả thi | Tiếp theo |
+Các notebook ghi lại quy trình xử lý, cấu hình, thực nghiệm, đánh giá và trực quan hóa. Số liệu báo cáo chính thức cần được đối chiếu trực tiếp với output và báo cáo sinh ra từ các notebook tương ứng.
 
-Chi tiết quá trình xử lý, phân tích và kiểm định được trình bày trong các notebook tương ứng.
+## 5. Web Demo
 
-## 5. Kết quả chính
+Ứng dụng được xây dựng bằng Streamlit, trình diễn quy trình phát hiện Mass bằng YOLOv5n và phân loại bằng InceptionV3.
 
-### 5.1. Xây dựng dữ liệu thực nghiệm
+Các chức năng chính:
+- Chọn ảnh từ danh sách ảnh Test hoặc tải ảnh lên.
+- Hiển thị ảnh đầu vào và các vùng Mass được mô hình phát hiện.
+- Hiển thị kết quả BENIGN/MALIGNANT cùng xác suất dự đoán.
+- Với ảnh Test có Ground Truth, hiển thị đối chiếu định vị và nhãn.
+- Với ảnh tải lên không có Ground Truth xác minh, chỉ hiển thị kết quả dự đoán; không tự tạo nhãn thật.
 
-- Hoàn thiện 1.696 Mass Annotations.
-- Liên kết với 1.592 ảnh Full Image duy nhất.
-- Chuẩn hóa thành công 1.696 ROI Masks.
-- Xây dựng Bounding Box và Detection Labels cho 1.696 annotations.
-- Hoàn thiện ba tập Train, Validation và Test theo Patient ID.
-- Không phát hiện Patient ID giao nhau giữa các tập dữ liệu.
+Web Demo phục vụ minh họa và kiểm tra mô hình, không đưa ra kết luận chẩn đoán y khoa.
 
-### 5.2. Tiền xử lý và kiểm định
+## 6. Cấu trúc repository
 
-- Kiểm tra khả năng đọc metadata và giải mã Pixel Data của toàn bộ 1.592 DICOM duy nhất.
-- Khảo sát và lựa chọn phương pháp chuẩn hóa cường độ ảnh P1–P99.
-- 78 ROI Masks cần resize được xử lý bằng Nearest Neighbor và kiểm tra overlay trực quan.
-- Kiểm tra ngẫu nhiên 100 ảnh cùng Bounding Box tương ứng.
-- Notebook 06 đạt **21/21 tiêu chí PASS** trong báo cáo kiểm định chất lượng.
+```text
+Breast_Cancer_CBIS-DDSM/
+├── Data/
+│   ├── metadata/              # Metadata được quản lý theo chính sách chia sẻ
+│   ├── rawdata/               # Dữ liệu gốc — không đưa lên Git
+│   └── processed/             # Dữ liệu xử lý — không đưa lên Git
+├── notebooks/
+│   ├── 01_...ipynb
+│   ├── ...
+│   ├── 08_model_training_and_optimization.ipynb
+│   ├── 09_model_evaluation_and_error_analysis.ipynb
+│   ├── 10_Research_Visualization_and_Results_Presentation.ipynb
+│   └── 11_Web_Demo_Development.ipynb
+├── WebDemo/
+│   ├── app.py
+│   ├── app/
+│   │   └── utils/
+│   ├── assets/
+│   ├── config/
+│   └── reports/
+├── external/
+│   └── yolov5/                # Clone YOLOv5 theo commit được ghim
+├── environment.yml
+├── requirements.txt
+└── README.md
+```
 
-### 5.3. Thiết kế thực nghiệm
+Tên và sự hiện diện của một số thư mục dữ liệu phụ thuộc vào việc người dùng đã tải và chuẩn bị dataset ở máy cục bộ hay chưa. Các thư mục dữ liệu lớn và model checkpoints được loại khỏi Git.
 
-- Hoàn thành thiết kế Two-stage Pipeline.
-- Xác định YOLOv5n làm kiến trúc ứng viên cho Detection.
-- Xác định VGG16, ResNet50 và InceptionV3 cho Classification.
-- Xây dựng các phương án đầu vào Full Image và Patch.
-- Hoàn thành các bảng thiết kế pipeline, phân chia dữ liệu và tiêu chí đánh giá trong Notebook 07.
+## 7. Môi trường
 
-**Lưu ý:** Các kết quả trên phản ánh giai đoạn xây dựng dữ liệu và thiết kế thực nghiệm. Mô hình chưa được huấn luyện và chưa có kết quả đánh giá hiệu năng.
+Khuyến nghị Python 3.11 và Conda.
 
-## 6. Kiến trúc mô hình dự kiến
+### Tạo môi trường bằng Conda
 
-Nghiên cứu lựa chọn hướng tiếp cận **Two-stage Pipeline**, trong đó nhiệm vụ phát hiện và phân loại được thực hiện ở hai giai đoạn riêng biệt.
+```bash
+conda env create -f environment.yml
+conda activate cbis-thesis
+python -m ipykernel install --user --name cbis-thesis --display-name "Python (cbis-thesis)"
+```
 
-### Giai đoạn 1 – Phát hiện và định vị tổn thương
+### Hoặc cài bằng pip
 
-**YOLOv5n**
+```bash
+python -m venv .venv
+```
 
-- Đầu vào: ảnh Full Image hoặc các Patch được xây dựng từ ảnh gốc.
-- Nhiệm vụ: phát hiện và định vị vùng tổn thương Mass.
-- Đầu ra: Bounding Box và độ tin cậy dự đoán.
+Windows PowerShell:
 
-### Giai đoạn 2 – Phân loại pathology
+```powershell
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
 
-Ba kiến trúc CNN được đưa vào so sánh:
+**PyTorch/CUDA:** phiên bản PyTorch có thể cần điều chỉnh theo hệ điều hành, GPU và CUDA runtime. Nếu cần CUDA, hãy cài đúng wheel theo hướng dẫn chính thức tại [PyTorch — Get Started](https://pytorch.org/get-started/locally/). Không nên xem CUDA runtime hiển thị trong máy là bảo đảm rằng mọi môi trường Python đều dùng cùng một bản CUDA.
 
-| Kiến trúc | Nhiệm vụ |
-|:--|:--|
-| VGG16 | Phân loại BENIGN / MALIGNANT |
-| ResNet50 | Phân loại BENIGN / MALIGNANT |
-| InceptionV3 | Phân loại BENIGN / MALIGNANT |
+## 8. YOLOv5 dependency
 
-Đầu vào là vùng tổn thương được trích xuất từ Bounding Box. Thực nghiệm dự kiến đánh giá cả trường hợp sử dụng Ground Truth Bounding Box và Predicted Bounding Box để khảo sát ảnh hưởng của sai số phát hiện đến kết quả phân loại.
+Mã nguồn YOLOv5 upstream được quản lý riêng và không nên lồng nguyên thư mục `.git` của repository khác vào Git project này. Phiên bản sử dụng trong môi trường phát triển được ghim tại commit:
 
-### Quy ước nhãn phân loại
+```text
+915bbf294bb74c859f0b41f1c23bc395014ea679
+```
 
-Dữ liệu gốc có ba nhãn pathology:
+Clone và checkout đúng phiên bản:
 
-- `BENIGN`
-- `BENIGN_WITHOUT_CALLBACK`
-- `MALIGNANT`
+```bash
+git clone https://github.com/ultralytics/yolov5.git external/yolov5
+git -C external/yolov5 checkout 915bbf294bb74c859f0b41f1c23bc395014ea679
+```
 
-Đối với thí nghiệm phân loại nhị phân:
+Cài các dependency bổ sung của YOLOv5 theo `external/yolov5/requirements.txt` nếu môi trường chưa có.
 
-| Nhãn gốc | Nhãn thực nghiệm |
-|:--|:--|
-| BENIGN | BENIGN |
-| BENIGN_WITHOUT_CALLBACK | BENIGN |
-| MALIGNANT | MALIGNANT |
+## 9. Chạy Web Demo
 
-Việc ánh xạ chỉ áp dụng cho thí nghiệm nhị phân; nhãn pathology gốc vẫn được bảo toàn.
+Sau khi đã chuẩn bị dữ liệu, checkpoint và YOLOv5 source theo cấu hình đường dẫn trong ứng dụng:
 
-### Chiến lược đầu vào dự kiến
+```bash
+streamlit run WebDemo/app.py
+```
 
-| Phương án | Vai trò |
-|:--|:--|
-| Full Image 640 | Baseline |
-| Full Image 1024 | Ưu tiên khảo sát |
-| Full Image 1280 | Khảo sát có điều kiện |
-| Patch 1024, overlap 20% | Phương án so sánh |
-| Patch 1280, overlap 20% | Phương án khảo sát bổ sung |
+Các checkpoint huấn luyện không được phân phối trong repository. Người chạy cần đặt checkpoint đúng vị trí mà cấu hình Web Demo yêu cầu hoặc điều chỉnh cấu hình cục bộ tương ứng. Không tải checkpoint từ nguồn không xác minh.
 
-### Tiêu chí đánh giá
+## 10. Đánh giá
+
+Hai giai đoạn được đánh giá riêng và trong quy trình kết hợp:
 
 - **Detection:** Precision, Recall, IoU, mAP@50 và mAP@50–95.
 - **Classification:** Accuracy, Precision, Recall, F1-score, ROC-AUC và Confusion Matrix.
-- **Two-stage Pipeline:** Đánh giá ảnh hưởng của sai số Bounding Box đến kết quả phân loại ở giai đoạn tiếp theo.
+- **Pipeline:** đánh giá tác động của Bounding Box dự đoán so với Ground Truth crop đến kết quả phân loại.
 
-## 7. Môi trường phát triển
+Kết quả, biểu đồ và phân tích lỗi chi tiết được lưu trong Notebook 09–10 và các báo cáo thực nghiệm tương ứng. Khi trích dẫn số liệu trong báo cáo khóa luận, cần ghi rõ tập dữ liệu, ngưỡng, cách ghép cặp và cấu hình thí nghiệm.
 
-| Thành phần | Cấu hình |
-|:--|:--|
-| Hệ điều hành | Windows |
-| Python | 3.11.18 |
-| PyTorch | 2.5.1+cu121 |
-| CUDA Runtime | 12.1 |
-| GPU | NVIDIA GeForce RTX 4050 Laptop GPU |
-| VRAM | 6 GB |
-| Công cụ | VS Code, Jupyter Notebook, Conda |
+## 11. Giới hạn
 
-## 8. Định hướng tiếp theo
+- Phạm vi mô hình chính tập trung vào Mass; không khẳng định mô hình xử lý đầy đủ mọi dạng tổn thương tuyến vú.
+- Dự đoán không thay thế chẩn đoán chuyên môn.
+- Dự đoán không ghép được với Ground Truth theo ngưỡng IoU không mặc nhiên được xác nhận là tổn thương giả về mặt lâm sàng.
+- Hiệu năng trên CBIS-DDSM không tự động khái quát sang cơ sở dữ liệu, thiết bị chụp hoặc quần thể bệnh nhân khác.
+- Ảnh upload không có Ground Truth xác minh chỉ được trình diễn kết quả dự đoán.
 
-1. Thiết lập môi trường huấn luyện và kiểm tra khả năng thực thi mô hình trên phần cứng hiện có.
-2. Thử nghiệm YOLOv5n với các phương án đầu vào đã đề xuất.
-3. Huấn luyện và so sánh VGG16, ResNet50 và InceptionV3.
-4. Đánh giá riêng Detection, Classification và toàn bộ Two-stage Pipeline.
-5. Phân tích kết quả, đối chiếu với các nghiên cứu liên quan và xem xét xây dựng ứng dụng minh họa.
+## 12. Tài liệu tham khảo và nguồn dữ liệu
 
-## 9. Ghi chú nghiên cứu
+Sawyer-Lee, R., Gimenez, F., Hoogi, A., & Rubin, D. (2016). *A curated mammography data set for use in computer-aided detection and diagnosis research.*
 
-- Phạm vi thực nghiệm hiện tại tập trung vào Mass.
-- Các kiến trúc YOLOv5n, VGG16, ResNet50 và InceptionV3 là lựa chọn thiết kế, chưa phải mô hình đã huấn luyện.
-- 78 ROI Masks được resize đã được kiểm tra overlay trực quan. 1.618 ROI Masks giữ nguyên kích thước chưa được kiểm tra overlay riêng từng trường hợp.
-- Việc kiểm tra kích thước và sự tương ứng giữa Bounding Box với ROI Mask không tự động chứng minh tính chính xác lâm sàng của Ground Truth.
-- Việc chia dữ liệu theo Patient ID không đảm bảo độc lập tuyệt đối ở cấp người tham gia nghiên cứu.
-- Kết quả nghiên cứu phục vụ mục đích học thuật, không thay thế chẩn đoán y khoa.
+The Cancer Imaging Archive (TCIA): [CBIS-DDSM collection](https://www.cancerimagingarchive.net/collection/cbis-ddsm/).
 
-## 10. Nguồn dữ liệu và tài liệu tham khảo
+DOI: [10.7937/K9/TCIA.2016.7O02S9CY](https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY).
 
-**Sawyer-Lee, R., Gimenez, F., Hoogi, A., & Rubin, D. (2016).** *A curated mammography data set for use in computer-aided detection and diagnosis research.*
-
-**The Cancer Imaging Archive (TCIA).**
-
-**DOI:** [https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY](https://doi.org/10.7937/K9/TCIA.2016.7O02S9CY)
-
-> [!WARNING]
-> Người sử dụng dữ liệu cần tuân thủ **Chính sách và Hạn chế Sử dụng Dữ liệu** của TCIA. Việc trích dẫn bộ dữ liệu CBIS-DDSM theo yêu cầu của TCIA là bắt buộc.
+Người sử dụng dữ liệu cần tuân thủ chính sách, hạn chế và yêu cầu trích dẫn của TCIA.
 
 ---
 
